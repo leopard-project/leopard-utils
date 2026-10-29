@@ -1,0 +1,9 @@
+# 构建产物
+out/
+.pkg/
+build.ninja
+.ninja_deps
+.ninja_log
+*.o
+*.elf
+*.xbps
