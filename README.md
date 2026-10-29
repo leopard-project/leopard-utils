@@ -2,32 +2,29 @@
 
 LeopardOS core-utils 合集：集中收纳**单用途用户态 CLI 工具**（UNIX 思维：一件事做好）。
 
-每个工具仍是独立二进制、独立 xbps 包，对外名字不变——只是从各自的单仓合并到这里统一构建。
+一个仓库、一个包、多个二进制（GNU coreutils 惯例）。
 
 ## 工具清单
 
-| 目录 | 二进制 | xbps 包名 | 功能 |
-|---|---|---|---|
-| `poweroff/` | `poweroff.elf` | `poweroff` | 关机/重启（`poweroff [-r]`） |
-| `initctl/` | `initctl.elf` | `initctl` | initrc 服务控制（`list`/`enable`/`disable`） |
-| `lpdisk/` | `lpdisk.elf` | `leopard-disk` | GPT/MBR 分区工具（gdisk 式） |
-| `mkfs-fat32/` | `mkfs-fat32.elf` | `mkfs-fat32` | FAT32 格式化 |
+| 目录 | 二进制 | 功能 |
+|---|---|---|
+| `poweroff/` | `poweroff.elf` | 关机/重启（`poweroff [-r]`） |
+| `initctl/` | `initctl.elf` | initrc 服务控制（`list`/`enable`/`disable`） |
+| `lpdisk/` | `lpdisk.elf` | GPT/MBR 分区工具（gdisk 式） |
+| `mkfs-fat32/` | `mkfs-fat32.elf` | FAT32 格式化 |
 
-> 注意 `lpdisk` 的包名仍是 `leopard-disk`（历史名），但二进制叫 `lpdisk`。
+全部装进 `apps/system/`，打成一个包 `leopard-utils`。
 
 ## 构建
 
 ```sh
 python3 gen_ninja.py && ninja build      # 构建全部 4 个工具
-ninja pack                               # 打全部 4 个 xbps 包
-# 也可单工具：
-ninja build-poweroff / pack-poweroff
-ninja build-initctl  / pack-initctl
-ninja build-lpdisk   / pack-lpdisk
-ninja build-mkfs-fat32 / pack-mkfs-fat32
+ninja pack                               # 打单包 leopard-utils
+# 也可单工具构建：
+ninja build-poweroff / build-initctl / build-lpdisk / build-mkfs-fat32
 ```
 
-产物在 `out/`，依赖兄弟目录 `../leopard-sdk`（静态 ELF，无需运行时库）。
+产物：`out/*.elf` + `out/leopard-utils-1.0_1.x86_64.xbps`。依赖兄弟目录 `../leopard-sdk`（静态 ELF，无需运行时库）。
 
 ## 设计红线
 

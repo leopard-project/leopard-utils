@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """leopard-utils 统一构建 + xbps 打包（core-utils 合集）。
 
-一个脚本构建全部工具，产物独立：
-    out/<elf>.elf                 各工具二进制
-    out/<pkgname>-1.0_1.x86_64.xbps  各工具 xbps 包
+一个仓库、一个包、多个二进制（GNU coreutils 惯例）：
+    out/<elf>.elf                        各工具二进制
+    out/leopard-utils-1.0_1.x86_64.xbps  单包，含全部工具
 
-对外二进制名与包名保持不变（历史兼容，上层 initrc/getty 零改动）。
+install 路径均在 apps/system/ 下，与各工具历史安装位置一致。
 """
 import os
 from pathlib import Path
@@ -16,17 +16,18 @@ INC  = SDK / "include"
 OBJ  = SDK / "obj-tui"
 OUT  = ROOT / "out"
 
-# 每个工具的元数据：dir=源码目录，elf=二进制名，pkgname=xbps 包名（历史名不变）
+# 每个工具的元数据：dir=源码目录，elf=二进制名，install=包内安装路径
 TOOLS = [
-    dict(dir="poweroff",    elf="poweroff.elf",    pkgname="poweroff",
-         desc="Leopard power off/reboot",           install="apps/system/poweroff.elf"),
-    dict(dir="initctl",     elf="initctl.elf",     pkgname="initctl",
-         desc="Leopard service manager",             install="apps/system/initctl.elf"),
-    dict(dir="lpdisk",      elf="lpdisk.elf",      pkgname="leopard-disk",
-         desc="Leopard GPT/MBR partition tool",      install="apps/system/lpdisk.elf"),
-    dict(dir="mkfs-fat32",  elf="mkfs-fat32.elf",  pkgname="mkfs-fat32",
-         desc="Leopard FAT32 formatter",             install="apps/system/mkfs-fat32.elf"),
+    dict(dir="poweroff",   elf="poweroff.elf",   install="apps/system/poweroff.elf"),
+    dict(dir="initctl",    elf="initctl.elf",    install="apps/system/initctl.elf"),
+    dict(dir="lpdisk",     elf="lpdisk.elf",     install="apps/system/lpdisk.elf"),
+    dict(dir="mkfs-fat32", elf="mkfs-fat32.elf", install="apps/system/mkfs-fat32.elf"),
 ]
+
+PKGNAME = "leopard-utils"
+PKGVER  = "1.0_1"
+ARCH    = "x86_64"
+DESC    = "LeopardOS core utilities"
 
 # SDK 运行时，链接顺序：crt0 入口 → 运行时 → 应用 → liballoc
 RUNTIME  = ["crt0.o", "libsys.cpp.o", "xgui_stubs.cpp.o",
@@ -46,26 +47,6 @@ def rel(p):
 
 def esc(p):
     return rel(p).replace("$", "$$").replace(":", "$:").replace(" ", "$ ")
-
-
-def emit_package(L, t, elf):
-    pkg  = t["pkgname"]
-    inst = t["install"]
-    out  = OUT / f"{pkg}-1.0_1.x86_64.xbps"
-
-    args = f"-A x86_64 -n {pkg}-1.0_1 -s \"{t['desc']}\""
-    files = [(elf, inst)]
-
-    # 每个工具独立 .pkg 目录，避免并发打包互相覆盖
-    stage = f".pkg/{t['dir']}"
-    cmd = f"rm -rf {stage}"
-    for src, dst in files:
-        cmd += f" && mkdir -p {stage}/$$(dirname {dst}) && cp {esc(src)} {stage}/{dst}"
-    cmd += f" && cd out && xbps-create --compression gzip {args} ../{stage}"
-
-    L += [f"rule package-{t['dir']}", f"  command = {cmd}", ""]
-    L += [f"build {esc(out)}: package-{t['dir']} {' '.join(esc(s) for s, _ in files)}"]
-    L += [f"build pack-{t['dir']}: phony {esc(out)}"]
 
 
 def main():
@@ -94,7 +75,7 @@ def main():
         "  command = $ld -Ttext=0x200000 $in -o $out", "",
     ]
 
-    all_pkgs = []
+    elfs = []
     for t in TOOLS:
         src = ROOT / t["dir"] / "main.c"
         obj = OUT / t["dir"] / "main.c.o"
@@ -105,20 +86,31 @@ def main():
 
         ins = [OBJ / n for n in RUNTIME] + [obj] + [LIBALLOC]
         L += [f"build {esc(elf)}: link {' '.join(esc(o) for o in ins)}", ""]
-
-        emit_package(L, t, elf)
         L += [f"build build-{t['dir']}: phony {esc(elf)}"]
-        all_pkgs.append(f"pack-{t['dir']}")
+        elfs.append(elf)
         L += [""]
 
+    pkg_out = OUT / f"{PKGNAME}-{PKGVER}.{ARCH}.xbps"
+    args = f"-A {ARCH} -n {PKGNAME}-{PKGVER} -s \"{DESC}\""
+    files = [(OUT / t["elf"], t["install"]) for t in TOOLS]
+
+    stage = ".pkg"
+    cmd = f"rm -rf {stage}"
+    for src, dst in files:
+        cmd += f" && mkdir -p {stage}/$$(dirname {dst}) && cp {esc(src)} {stage}/{dst}"
+    cmd += f" && cd out && xbps-create --compression gzip {args} ../{stage}"
+
+    L += ["rule package", f"  command = {cmd}", ""]
+    L += [f"build {esc(pkg_out)}: package {' '.join(esc(s) for s, _ in files)}"]
+    L += [f"build pack: phony {esc(pkg_out)}"]
+
     L += ["build build: phony " + " ".join(f"build-{t['dir']}" for t in TOOLS)]
-    L += ["build pack: phony " + " ".join(all_pkgs)]
     L += ["default build"]
 
     L += ["rule clean", "  command = rm -rf out .pkg", "build clean: clean"]
 
     (ROOT / "build.ninja").write_text("\n".join(L) + "\n", encoding="utf-8")
-    print("已生成 build.ninja（leopard-utils）。用法：ninja build / ninja pack")
+    print("已生成 build.ninja（leopard-utils 单包）。用法：ninja build / ninja pack")
 
 
 if __name__ == "__main__":
