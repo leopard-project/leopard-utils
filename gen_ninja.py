@@ -22,6 +22,8 @@ TOOLS = [
     dict(dir="initctl",    elf="initctl.elf",    install="apps/system/initctl.elf"),
     dict(dir="lpdisk",     elf="lpdisk.elf",     install="apps/system/lpdisk.elf"),
     dict(dir="mkfs-fat32", elf="mkfs-fat32.elf", install="apps/system/mkfs-fat32.elf"),
+    dict(dir="mkfs-ext4",  elf="mkfs-ext4.elf",  install="apps/system/mkfs-ext4.elf",
+         extra=["format.cpp"]),
 ]
 
 PKGNAME = "leopard-utils"
@@ -35,7 +37,7 @@ RUNTIME  = ["arch/x86_64/crt0.S.o", "libsys.cpp.o",
             "xtuiapi.cpp.o", "krlibc.cpp.o", "string.cpp.o", "stdlib.cpp.o",
             "stdio.cpp.o", "unistd.cpp.o", "errno.cpp.o", "posix_ret.cpp.o",
             "ctype.cpp.o", "permissions.cpp.o", "posix_fs.cpp.o",
-            "posix_time.cpp.o", "posix_ioctl.cpp.o"]
+            "posix_time.cpp.o", "posix_ioctl.cpp.o", "xcrypto_random.cpp.o"]
 LIBALLOC = OBJ / "liballoc-x86_64.a"
 CRT      = SDK / "obj-extra" / "constart.cpp.o"  # Leopard CRT（替换官方 constart）
 
@@ -82,14 +84,19 @@ def main():
 
     elfs = []
     for t in TOOLS:
-        src = ROOT / t["dir"] / "main.c"
-        obj = OUT / t["dir"] / "main.c.o"
+        main = ROOT / t["dir"] / "main.c"
+        if not main.exists():
+            main = ROOT / t["dir"] / "main.cpp"
+        objs = []
+        sources = [main] + [ROOT / t["dir"] / extra for extra in t.get("extra", [])]
+        for src in sources:
+            obj = OUT / t["dir"] / (src.name + ".o")
+            rule = "cc" if str(src).endswith(".c") else "cxx"
+            L += [f"build {esc(obj)}: {rule} {esc(src)}", ""]
+            objs.append(obj)
+
         elf = OUT / t["elf"]
-
-        rule = "cc" if str(src).endswith(".c") else "cxx"
-        L += [f"build {esc(obj)}: {rule} {esc(src)}", ""]
-
-        ins = [OBJ / n for n in RUNTIME] + [CRT] + [obj] + [LIBALLOC]
+        ins = [OBJ / n for n in RUNTIME] + [CRT] + objs + [LIBALLOC]
         L += [f"build {esc(elf)}: link {' '.join(esc(o) for o in ins)}", ""]
         L += [f"build build-{t['dir']}: phony {esc(elf)}"]
         elfs.append(elf)

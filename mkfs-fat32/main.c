@@ -124,13 +124,25 @@ int main(int argc, char *argv[], char *envp[]) {
     }
     uint64_t total_sectors = size / SECTOR_SIZE;
     uint8_t  spc           = cluster_sectors(total_sectors);
-    /* 两遍收敛：簇数依赖 FAT 大小，FAT 大小又依赖簇数 */
     uint64_t fatsz          = 0;
     uint64_t total_clusters = 0;
-    for (int pass = 0; pass < 3; pass++) {
-        uint64_t data_sectors = total_sectors - RESERVED_SECTORS - (uint64_t)NUM_FATS * fatsz;
-        total_clusters = data_sectors / spc;
-        fatsz = ((total_clusters + 2) * 4 + SECTOR_SIZE - 1) / SECTOR_SIZE;
+
+    /* FAT32 规范要求 >= 65525 簇；小分区必须缩小簇。64 MiB ESP 用 512B 簇
+     * 才有约 130k 簇；否则 FatFs 会按 FAT16 解析并报 FR_NO_FILESYSTEM。 */
+    for (;;) {
+        for (int pass = 0; pass < 3; pass++) {
+            uint64_t data_sectors = total_sectors - RESERVED_SECTORS - (uint64_t)NUM_FATS * fatsz;
+            total_clusters = data_sectors / spc;
+            fatsz = ((total_clusters + 2) * 4 + SECTOR_SIZE - 1) / SECTOR_SIZE;
+        }
+        if (total_clusters >= 65525) break;
+        fatsz = 0;
+        if (spc == 1) {
+            xapi_Printf("mkfs-fat32: volume too small for FAT32 (needs >= ~32 MiB)\n");
+            fd_close(fd);
+            return 1;
+        }
+        spc >>= 1;
     }
 
     xapi_Printf("mkfs-fat32: %s  %llu bytes  spc=%u  clusters=%llu  fatsz=%llu\n",

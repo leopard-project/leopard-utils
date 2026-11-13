@@ -567,9 +567,11 @@ static int cmd_add(int argc, char *argv[])
         uint64_t end   = (uint64_t)strtol(argv[4], NULL, 0);
         const char *type = "8300";
         const char *name = "";
+        const char *guid_out = NULL;
         for (int i = 5; i < argc; i++) {
                 if (strcmp(argv[i], "--type") == 0 && i + 1 < argc) type = argv[++i];
                 else if (strcmp(argv[i], "--name") == 0 && i + 1 < argc) name = argv[++i];
+                else if (strcmp(argv[i], "--guid-out") == 0 && i + 1 < argc) guid_out = argv[++i];
         }
 
         char path[64];
@@ -629,6 +631,18 @@ static int cmd_add(int argc, char *argv[])
         if (rc != 0) {
                 xapi_Printf("write GPT failed\n");
                 return 1;
+        }
+        if (guid_out != NULL) {
+                char text[160];
+                size_t used = 0;
+                used += (size_t)snprintf(text + used, sizeof(text) - used, "disk=");
+                for (int k = 0; k < 16; k++)
+                        used += (size_t)snprintf(text + used, sizeof(text) - used, "%02x", g.hdr.disk_guid[k]);
+                used += (size_t)snprintf(text + used, sizeof(text) - used, "\npart=");
+                for (int k = 0; k < 16; k++)
+                        used += (size_t)snprintf(text + used, sizeof(text) - used, "%02x", e->unique_partition_guid[k]);
+                used += (size_t)snprintf(text + used, sizeof(text) - used, "\n");
+                xapi_WriteFile((WSTR)guid_out, text, used, 0);
         }
         xapi_Printf("Added partition start=%llu end=%llu type=%s\n",
                     (unsigned long long)start, (unsigned long long)end, type);
