@@ -12,6 +12,11 @@ LeopardOS core-utils 合集：集中收纳**单用途用户态 CLI 工具**（UN
 | `initctl/` | `initctl.elf` | initrc 服务控制（`list`/`enable`/`disable`） |
 | `lpdisk/` | `lpdisk.elf` | GPT/MBR 分区工具（gdisk 式） |
 | `mkfs-fat32/` | `mkfs-fat32.elf` | FAT32 格式化 |
+| `mkfs-ext4/` | `mkfs-ext4.elf` | ext4 格式化（含 UUID 输出） |
+| `mount/` | `mount.elf` | 挂载（`-t fatfs|ext4`） |
+| `umount/` | `umount.elf` | 卸载 |
+| `sync/` | `sync.elf` | 刷盘 |
+| `reboot/` | `reboot.elf` | 重启 |
 
 全部装进 `apps/system/`，打成一个包 `leopard-utils`。
 
@@ -21,7 +26,7 @@ LeopardOS core-utils 合集：集中收纳**单用途用户态 CLI 工具**（UN
 python3 gen_ninja.py && ninja build      # 构建全部 4 个工具
 ninja pack                               # 打单包 leopard-utils
 # 也可单工具构建：
-ninja build-poweroff / build-initctl / build-lpdisk / build-mkfs-fat32
+ninja build-poweroff / build-initctl / build-lpdisk / build-mkfs-fat32 / build-mkfs-ext4 / build-mount / build-umount / build-sync / build-reboot
 ```
 
 产物：`out/*.elf` + `out/leopard-utils-1.0_1.x86_64.xbps`。依赖兄弟目录 `../leopard-sdk`（静态 ELF，无需运行时库）。

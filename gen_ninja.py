@@ -24,6 +24,10 @@ TOOLS = [
     dict(dir="mkfs-fat32", elf="mkfs-fat32.elf", install="apps/system/mkfs-fat32.elf"),
     dict(dir="mkfs-ext4",  elf="mkfs-ext4.elf",  install="apps/system/mkfs-ext4.elf",
          extra=["format.cpp"]),
+    dict(dir="mount",      elf="mount.elf",      install="apps/system/mount.elf"),
+    dict(dir="umount",     elf="umount.elf",     install="apps/system/umount.elf"),
+    dict(dir="sync",       elf="sync.elf",       install="apps/system/sync.elf"),
+    dict(dir="reboot",     elf="reboot.elf",     install="apps/system/reboot.elf"),
 ]
 
 PKGNAME = "leopard-utils"

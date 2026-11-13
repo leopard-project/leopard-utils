@@ -1,7 +1,7 @@
 # PROJECT KNOWLEDGE BASE — leopard-utils
 
 LeopardOS core-utils 合集：单用途用户态 CLI 工具统一仓库，由 4 个原单仓合并而来
-（poweroff / initctl / lpdisk=leopard-disk / mkfs-fat32）。
+（poweroff / initctl / lpdisk=leopard-disk / mkfs-fat32 / mkfs-ext4 / mount / umount / sync / reboot）。
 
 ## 打包模型（单包，coreutils 惯例）
 
@@ -36,6 +36,11 @@ initrc 服务控制（`list`/`enable <svc>`/`disable <svc>`），操作 `/system
 用户态 GPT/MBR 分区工具（gdisk 式）。红线：
 - **分区表 = 文件**：直接 open `/dev/<dev>` 按 LBA 读写，不新增内核分区 syscall。
 - **只依赖内核既有原语**：块设备节点 + LBA 读写 + 重扫 ioctl（`IOPARTSCAN`）。
+
+### mount / umount / sync / reboot
+- `mount [-t fatfs|ext4] device mountpoint`、`umount mountpoint`，直接走 SYS_MOUNT/SYS_UMOUNT2。
+- `sync` 走 SYS_SYNC(162)；`reboot` 走 `xapi_PowerAction(XPOWER_REBOOT)`。
+- 这些是系统管理命令；普通文件命令在 `leopard-coreutils`。
 
 ### mkfs-fat32
 用户态 FAT32 格式化。红线：
