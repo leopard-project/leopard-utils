@@ -6,15 +6,17 @@ int main(int argc, char *argv[], char *envp[])
     (void)argv;
     (void)envp;
 
+    uint64_t action = XPOWER_SHUTDOWN;
+
     if (argc > 1 && strcmp(argv[1], "-r") == 0) {
         xapi_Printf("The system will reboot now...\n");
-        xapi_PowerAction(XPOWER_REBOOT);
+        action = XPOWER_REBOOT;
     } else {
         xapi_Printf("The system will poweroff now...\n");
-        xapi_PowerAction(XPOWER_SHUTDOWN);
     }
 
-    xapi_Printf("poweroff: action failed\n");
+    int64_t rc = (int64_t)xapi_PowerAction(action);
+    xapi_Printf("poweroff: action failed rc=%lld\n", (long long)rc);
     return 1;
 }
 
