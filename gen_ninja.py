@@ -31,12 +31,13 @@ DESC    = "LeopardOS core utilities"
 
 # SDK 运行时，链接顺序：crt0 入口 → 运行时 → 应用 → liballoc
 # XACT 2026v5 官方运行时（obj-tui/ 由 leopard-sdk 铺装）
-RUNTIME  = ["arch/x86_64/crt0.S.o", "libsys.cpp.o", "constart.cpp.o",
+RUNTIME  = ["arch/x86_64/crt0.S.o", "libsys.cpp.o",
             "xtuiapi.cpp.o", "krlibc.cpp.o", "string.cpp.o", "stdlib.cpp.o",
             "stdio.cpp.o", "unistd.cpp.o", "errno.cpp.o", "posix_ret.cpp.o",
             "ctype.cpp.o", "permissions.cpp.o", "posix_fs.cpp.o",
             "posix_time.cpp.o", "posix_ioctl.cpp.o"]
 LIBALLOC = OBJ / "liballoc-x86_64.a"
+CRT      = SDK / "obj-extra" / "constart.cpp.o"  # Leopard CRT（替换官方 constart）
 
 
 def rel(p):
@@ -88,7 +89,7 @@ def main():
         rule = "cc" if str(src).endswith(".c") else "cxx"
         L += [f"build {esc(obj)}: {rule} {esc(src)}", ""]
 
-        ins = [OBJ / n for n in RUNTIME] + [obj] + [LIBALLOC]
+        ins = [OBJ / n for n in RUNTIME] + [CRT] + [obj] + [LIBALLOC]
         L += [f"build {esc(elf)}: link {' '.join(esc(o) for o in ins)}", ""]
         L += [f"build build-{t['dir']}: phony {esc(elf)}"]
         elfs.append(elf)
