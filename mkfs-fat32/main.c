@@ -233,7 +233,9 @@ int main(int argc, char *argv[], char *envp[]) {
         if (sector_write(fd, root_lba + s, zeros) != 0) { xapi_Printf("zero root dir failed\n"); fd_close(fd); return 1; }
     }
     if (label != NULL) {
-        uint8_t entry[32];
+        /* sector_write always writes a full sector; keep the buffer full-size
+         * or stack garbage ends up as extra root-directory entries. */
+        uint8_t entry[SECTOR_SIZE];
         memset(entry, 0, sizeof(entry));
         pad11(entry, label);
         entry[11] = 0x08; /* 卷标属性 */
