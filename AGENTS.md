@@ -19,7 +19,7 @@ LeopardOS core-utils 合集：单用途用户态 CLI 工具统一仓库，由 4 
     ninja pack                            # 单包 leopard-utils
     ninja build-<dir>                     # 单工具
 
-- 静态 ELF，依赖 `../XACT-CRT`（CRT 目录名若不同，改 gen_ninja.py 顶部 CRT_ROOT）。
+- 静态 ELF，依赖 `../XJ380-SDK/out/crt`（CRT 目录名若不同，改 gen_ninja.py 顶部 CRT_ROOT）。
 - 新增工具：在 `TOOLS` 加一项（dir/elf/install）+ 建 `<dir>/main.c` 即可，自动进单包。
 
 ## 各工具要点
