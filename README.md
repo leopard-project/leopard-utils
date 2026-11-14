@@ -29,7 +29,7 @@ ninja pack                               # 打单包 leopard-utils
 ninja build-poweroff / build-initctl / build-lpdisk / build-mkfs-fat32 / build-mkfs-ext4 / build-mount / build-umount / build-sync / build-reboot
 ```
 
-产物：`out/*.elf` + `out/leopard-utils-1.0_1.x86_64.xbps`。依赖兄弟目录 `../leopard-sdk`（静态 ELF，无需运行时库）。
+产物：`out/*.elf` + `out/leopard-utils-1.0_1.x86_64.xbps`。依赖兄弟目录 `../XJ380-SDK`（静态 ELF，无需运行时库）。
 
 ## 设计红线
 

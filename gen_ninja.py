@@ -11,8 +11,8 @@ import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent          # leopard-utils/
-SDK  = ROOT / ".." / "leopard-sdk"              # SDK 根（目录名若不同，改这里）
-INC  = SDK / "include"
+SDK  = ROOT / ".." / "XJ380-SDK"              # SDK 根（目录名若不同，改这里）
+INC  = SDK / "src" / "include"
 OBJ  = SDK / "obj-tui"
 OUT  = ROOT / "out"
 
@@ -36,14 +36,14 @@ ARCH    = "x86_64"
 DESC    = "LeopardOS core utilities"
 
 # SDK 运行时，链接顺序：crt0 入口 → 运行时 → 应用 → liballoc
-# XACT 2026v5 官方运行时（obj-tui/ 由 leopard-sdk 铺装）
+# 官方运行时（obj-tui/ 由 XJ380-SDK 构建）
 RUNTIME  = ["arch/x86_64/crt0.S.o", "libsys.cpp.o",
             "xtuiapi.cpp.o", "krlibc.cpp.o", "string.cpp.o", "stdlib.cpp.o",
             "stdio.cpp.o", "unistd.cpp.o", "errno.cpp.o", "posix_ret.cpp.o",
             "ctype.cpp.o", "permissions.cpp.o", "posix_fs.cpp.o",
             "posix_time.cpp.o", "posix_ioctl.cpp.o", "xcrypto_random.cpp.o"]
 LIBALLOC = OBJ / "liballoc-x86_64.a"
-CRT      = SDK / "obj-extra" / "constart.cpp.o"  # Leopard CRT（替换官方 constart）
+CRT      = SDK / "obj-extra" / "start.cpp.o"  # 官方 start.cpp：无终端 fork/exec
 
 
 def rel(p):
