@@ -24,6 +24,10 @@ LeopardOS core-utils 合集：单用途用户态 CLI 工具统一仓库，由 4 
 
 ## 各工具要点
 
+### clear
+清屏并回 home：输出 `\033[2J\033[H`，由 conhost VT 处理。
+shell 不再内置 `clear`，统一走 `/apps/system/clear.elf`。
+
 ### poweroff
 关机/重启。调 `xapi_PowerAction(XPOWER_SHUTDOWN/XPOWER_REBOOT)`，内核侧
 `XAPI_POWER_ACTION` 已接线 `power_shutdown()`/`power_reboot()`（`driver/power.cpp`）。

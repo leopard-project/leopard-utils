@@ -16,6 +16,7 @@ OUT  = ROOT / "out"
 # 每个工具的元数据：dir=源码目录，elf=二进制名，install=包内安装路径
 TOOLS = [
     dict(dir="poweroff",   elf="poweroff.elf",   install="apps/system/poweroff.elf"),
+    dict(dir="clear",      elf="clear.elf",      install="apps/system/clear.elf"),
     dict(dir="initctl",    elf="initctl.elf",    install="apps/system/initctl.elf"),
     dict(dir="lpdisk",     elf="lpdisk.elf",     install="apps/system/lpdisk.elf"),
     dict(dir="mkfs-fat32", elf="mkfs-fat32.elf", install="apps/system/mkfs-fat32.elf"),
@@ -28,7 +29,7 @@ TOOLS = [
 ]
 
 PKGNAME = "leopard-utils"
-PKGVER  = "1.0_1"
+PKGVER  = "1.0_2"
 ARCH    = "x86_64"
 DESC    = "LeopardOS core utilities"
 
