@@ -19,7 +19,7 @@ LeopardOS core-utils 合集：单用途用户态 CLI 工具统一仓库，由 4 
     ninja pack                            # 单包 leopard-utils
     ninja build-<dir>                     # 单工具
 
-- 静态 ELF，依赖 `../XJ380-SDK/out/crt`（CRT 目录名若不同，改 gen_ninja.py 顶部 CRT_ROOT）。
+- 静态 ELF，依赖 `../leopard-sdk/out/crt`（CRT 目录名若不同，改 gen_ninja.py 顶部 CRT_ROOT）。
 - 新增工具：在 `TOOLS` 加一项（dir/elf/install）+ 建 `<dir>/main.c` 即可，自动进单包。
 
 ## 各工具要点
@@ -31,7 +31,7 @@ shell 不再内置 `clear`，统一走 `/apps/system/clear.elf`。
 ### poweroff
 关机/重启。调 `xapi_PowerAction(XPOWER_SHUTDOWN/XPOWER_REBOOT)`，内核侧
 `XAPI_POWER_ACTION` 已接线 `power_shutdown()`/`power_reboot()`（`driver/power.cpp`）。
-OpenXSKernel 2.2.1 起该 syscall 只允许 Root/System；Admin 登录后应执行
+leopard-xsk 2.2.1 起该 syscall 只允许 Root/System；Admin 登录后应执行
 `doas poweroff` / `doas reboot`（doas 是 setuid root 帮助程序，需账户密码）。
 
 ### initctl
