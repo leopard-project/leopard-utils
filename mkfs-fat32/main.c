@@ -1,10 +1,10 @@
 /*
- * mkfs-fat32 — LeopardOS 用户态 FAT32 格式化工具（UNIX 思维：一件事做好）。
+ * mkfs-fat32 — LeopardOS userspace FAT32 formatting tool (UNIX mindset: do one thing well).
  *
- * 直接 open /dev/<dev> 后按 LBA 写 FAT32 结构：
- *   引导扇区(BPB) + FSInfo + 备份引导扇区 + 双 FAT + 根目录簇。
- * 不碰分区表（那是 lpdisk 的事），不依赖内核 mkfs API。
- * 原生 XAPI + enter_syscall 薄封装，不用 musl。
+ * Directly open /dev/<dev> and write FAT32 structures by LBA:
+ *   boot sector (BPB) + FSInfo + backup boot sector + dual FAT + root directory cluster.
+ * Leaves the partition table alone (that is lpdisk's job); does not rely on a kernel mkfs API.
+ * Native XAPI + thin enter_syscall wrapper, no musl.
  */
 #include "xtuiapi.h"
 
@@ -18,7 +18,7 @@
 #define SEEK_SET            0
 #define SEEK_END            2
 
-/* ---- FAT32 BPB（90 字节，打包）---- */
+/* ---- FAT32 BPB (90 bytes, packed) ---- */
 typedef struct {
     uint8_t  jump[3];
     uint8_t  oem[8];
@@ -49,7 +49,7 @@ typedef struct {
     uint8_t  fs_type[8];
 } __attribute__((packed)) bpb_t;
 
-/* ---- POSIX 薄封装 ---- */
+/* ---- Thin POSIX wrapper ---- */
 static int fd_open(const char *path, uint64_t flags) {
     return (int)(int64_t)enter_syscall(SYS_OPEN, (uint64_t)path, flags, 0644, 0, 0, 0);
 }
@@ -73,7 +73,7 @@ static uint64_t disk_size_bytes(int fd) {
     return (sz < 0) ? 0 : (uint64_t)sz;
 }
 
-/* ---- PRNG（卷 ID）---- */
+/* ---- PRNG (volume ID) ---- */
 static uint64_t rng_state;
 static uint64_t rng_next(void) {
     uint64_t x = rng_state;
@@ -82,7 +82,7 @@ static uint64_t rng_next(void) {
     return x;
 }
 
-/* ---- 工具 ---- */
+/* ---- Helpers ---- */
 static void pad11(uint8_t dst[11], const char *src) {
     memset(dst, ' ', 11);
     if (src == NULL) return;
@@ -92,12 +92,12 @@ static void pad11(uint8_t dst[11], const char *src) {
 }
 
 static uint8_t cluster_sectors(uint64_t total_sectors) {
-    uint64_t mb = total_sectors >> 11; /* sectors / 2048 = MiB（512B 扇区）*/
-    if (mb < 260)  return 8;   /* < 260MiB → 4KiB 簇 */
-    if (mb < 8192) return 8;   /* < 8GiB   → 4KiB 簇 */
-    if (mb < 16384) return 16; /* < 16GiB  → 8KiB 簇 */
-    if (mb < 32768) return 32; /* < 32GiB  → 16KiB 簇 */
-    return 64;                  /* ≥ 32GiB  → 32KiB 簇 */
+    uint64_t mb = total_sectors >> 11; /* sectors / 2048 = MiB (512B sectors) */
+    if (mb < 260)  return 8;   /* < 260MiB -> 4KiB clusters */
+    if (mb < 8192) return 8;   /* < 8GiB   -> 4KiB clusters */
+    if (mb < 16384) return 16; /* < 16GiB  -> 8KiB clusters */
+    if (mb < 32768) return 32; /* < 32GiB  -> 16KiB clusters */
+    return 64;                  /* >= 32GiB -> 32KiB clusters */
 }
 
 int main(int argc, char *argv[], char *envp[]) {
@@ -127,8 +127,8 @@ int main(int argc, char *argv[], char *envp[]) {
     uint64_t fatsz          = 0;
     uint64_t total_clusters = 0;
 
-    /* FAT32 规范要求 >= 65525 簇；小分区必须缩小簇。64 MiB ESP 用 512B 簇
-     * 才有约 130k 簇；否则 FatFs 会按 FAT16 解析并报 FR_NO_FILESYSTEM。 */
+    /* The FAT32 spec requires >= 65525 clusters; small partitions must shrink the cluster size. A 64 MiB ESP
+     * needs 512B clusters to have about 130k clusters; otherwise FatFs parses it as FAT16 and reports FR_NO_FILESYSTEM. */
     for (;;) {
         for (int pass = 0; pass < 3; pass++) {
             uint64_t data_sectors = total_sectors - RESERVED_SECTORS - (uint64_t)NUM_FATS * fatsz;
@@ -153,7 +153,7 @@ int main(int argc, char *argv[], char *envp[]) {
     if (rng_state == 0) rng_state = 0x9E3779B97F4A7C15ULL;
     uint32_t volid = (uint32_t)rng_next();
 
-    /* 1. 引导扇区（BPB） */
+    /* 1. Boot sector (BPB) */
     uint8_t boot[SECTOR_SIZE];
     memset(boot, 0, sizeof(boot));
     bpb_t *b = (bpb_t *)boot;
@@ -188,7 +188,7 @@ int main(int argc, char *argv[], char *envp[]) {
     if (sector_write(fd, 0, boot) != 0) { xapi_Printf("write boot sector failed\n"); fd_close(fd); return 1; }
     if (sector_write(fd, BACKUP_BOOT_SECTOR, boot) != 0) { xapi_Printf("write backup boot failed\n"); fd_close(fd); return 1; }
 
-    /* 2. FSInfo 扇区 */
+    /* 2. FSInfo sector */
     uint8_t fsi[SECTOR_SIZE];
     memset(fsi, 0, sizeof(fsi));
     fsi[0] = 0x52; fsi[1] = 0x52; fsi[2] = 0x61; fsi[3] = 0x41;      /* 0x41615252 */
@@ -202,15 +202,15 @@ int main(int argc, char *argv[], char *envp[]) {
     fsi[508] = 0x00; fsi[509] = 0x00; fsi[510] = 0x55; fsi[511] = 0xAA; /* 0xAA550000 */
     if (sector_write(fd, FSINFO_SECTOR, fsi) != 0) { xapi_Printf("write fsinfo failed\n"); fd_close(fd); return 1; }
 
-    /* 3. 清零其余保留扇区（2..5, 7..31）*/
+    /* 3. Zero the remaining reserved sectors (2..5, 7..31) */
     uint8_t zeros[SECTOR_SIZE];
     memset(zeros, 0, sizeof(zeros));
     for (uint64_t s = 2; s < RESERVED_SECTORS; s++) {
-        if (s == BACKUP_BOOT_SECTOR) continue; /* 已写备份引导 */
+        if (s == BACKUP_BOOT_SECTOR) continue; /* backup boot already written */
         if (sector_write(fd, s, zeros) != 0) { xapi_Printf("zero reserved failed\n"); fd_close(fd); return 1; }
     }
 
-    /* 4. FAT1 + FAT2（FAT[0]=0x0FFFFFF8, FAT[1]=FAT[2]=0x0FFFFFFF，其余空闲）*/
+    /* 4. FAT1 + FAT2 (FAT[0]=0x0FFFFFF8, FAT[1]=FAT[2]=0x0FFFFFFF, rest free) */
     uint8_t fat0[SECTOR_SIZE];
     memset(fat0, 0, sizeof(fat0));
     uint32_t *fe = (uint32_t *)fat0;
@@ -226,7 +226,7 @@ int main(int argc, char *argv[], char *envp[]) {
         if (sector_write(fd, fat2_lba + s, zeros) != 0) { xapi_Printf("zero FAT2 failed\n"); fd_close(fd); return 1; }
     }
 
-    /* 5. 根目录簇（cluster 2）：清零 + 卷标目录项 */
+    /* 5. Root directory cluster (cluster 2): zero + volume label entry */
     uint64_t data_start = RESERVED_SECTORS + (uint64_t)NUM_FATS * fatsz;
     uint64_t root_lba   = data_start; /* cluster 2 → data_start + (2-2)*spc */
     for (uint64_t s = 0; s < spc; s++) {
@@ -238,7 +238,7 @@ int main(int argc, char *argv[], char *envp[]) {
         uint8_t entry[SECTOR_SIZE];
         memset(entry, 0, sizeof(entry));
         pad11(entry, label);
-        entry[11] = 0x08; /* 卷标属性 */
+        entry[11] = 0x08; /* volume label attribute */
         if (sector_write(fd, root_lba, entry) != 0) { xapi_Printf("write volume label failed\n"); fd_close(fd); return 1; }
     }
 

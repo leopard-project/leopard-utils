@@ -1,7 +1,7 @@
 #include "xtuiapi.h"
 
-/* initctl —— initrc 服务控制：list / enable <svc> / disable <svc>
- * initrc 格式：每行 "respawn <路径>"（也兼容 echo/sleep/裸命令，见 leopard-rc 的 str2srv）
+/* initctl —— initrc service control: list / enable <svc> / disable <svc>
+ * initrc format: one "respawn <path>" per line (also accepts echo/sleep/bare commands, see str2srv in leopard-rc)
  */
 
 #define CFG_PATH "/system/config/initrc"
@@ -21,7 +21,7 @@ static const char *svc_path(const char *name)
     return NULL;
 }
 
-/* 读整个 initrc 到 buf（以 \0 结尾），返回字节数；文件不存在返回 0 */
+/* Read the whole initrc into buf (NUL-terminated), return the byte count; return 0 if the file is missing */
 static uint64_t read_initrc(char *buf, size_t cap)
 {
     memset(buf, 0, cap);
@@ -37,14 +37,14 @@ static uint64_t read_initrc(char *buf, size_t cap)
     return got;
 }
 
-/* 写回 initrc：先删再写，避免旧内容比新内容长时残留 */
+/* Write initrc back: delete first, then write, to avoid residue when old content is longer than new */
 static void write_initrc(const char *buf, size_t len)
 {
     xapi_DeleteFile((WSTR)CFG_PATH);
     xapi_WriteFile((WSTR)CFG_PATH, (char *)buf, len, 0);
 }
 
-/* 判断一行（不含换行，textlen 字节）是否为 "respawn <path>" */
+/* Determine whether a line (no newline, textlen bytes) is "respawn <path>" */
 static int line_is_respawn(const char *line, size_t textlen, const char *path)
 {
     if (textlen < 8 || strncmp(line, "respawn ", 8) != 0)

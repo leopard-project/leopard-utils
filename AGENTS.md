@@ -27,6 +27,8 @@ LeopardOS core-utils 合集：单用途用户态 CLI 工具统一仓库，由 4 
 ### poweroff
 关机/重启。调 `xapi_PowerAction(XPOWER_SHUTDOWN/XPOWER_REBOOT)`，内核侧
 `XAPI_POWER_ACTION` 已接线 `power_shutdown()`/`power_reboot()`（`driver/power.cpp`）。
+OpenXSKernel 2.2.1 起该 syscall 只允许 Root/System；Admin 登录后应执行
+`doas poweroff` / `doas reboot`（doas 是 setuid root 帮助程序，需账户密码）。
 
 ### initctl
 initrc 服务控制（`list`/`enable <svc>`/`disable <svc>`），操作 `/system/config/initrc`

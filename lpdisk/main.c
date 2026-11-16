@@ -1,6 +1,6 @@
 /*
- * leopard-disk — LeopardOS 用户态 GPT/MBR 分区工具（gdisk 式）
- * 分区表当文件处理；只依赖内核既有原语；原生 XAPI + 裸 syscall。
+ * leopard-disk — LeopardOS userspace GPT/MBR partitioning tool (gdisk-style)
+ * Treats the partition table as a file; depends only on existing kernel primitives; native XAPI + raw syscalls.
  */
 #include "xtuiapi.h"
 

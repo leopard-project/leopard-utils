@@ -8,7 +8,7 @@ LeopardOS core-utils 合集：集中收纳**单用途用户态 CLI 工具**（UN
 
 | 目录 | 二进制 | 功能 |
 |---|---|---|
-| `poweroff/` | `poweroff.elf` | 关机/重启（`poweroff [-r]`） |
+| `poweroff/` | `poweroff.elf` | 关机/重启（`poweroff [-r]`；Admin 用 `doas poweroff`） |
 | `initctl/` | `initctl.elf` | initrc 服务控制（`list`/`enable`/`disable`） |
 | `lpdisk/` | `lpdisk.elf` | GPT/MBR 分区工具（gdisk 式） |
 | `mkfs-fat32/` | `mkfs-fat32.elf` | FAT32 格式化 |
